@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/ride_estimate.dart';
 import '../services/ride_service.dart';
 import '../widgets/estimate_card.dart';
+import '../widgets/location_input.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -14,14 +15,17 @@ class _HomeScreenState extends State<HomeScreen> {
   final RideService _rideService = RideService();
   List<RideEstimate> _estimates = [];
   bool _isLoading = false;
-  String _startLocation = 'Rua A, 123';
-  String _endLocation = 'Avenida B, 456';
+  String _startLocation = 'Rua A, 123 (Simulado)';
+  String _endLocation = 'Avenida B, 456 (Simulado)';
 
   // Coordenadas simuladas para que a lógica de preço funcione
   final double _startLat = -23.5505;
   final double _startLon = -46.6333;
   final double _endLat = -23.5614;
   final double _endLon = -46.6562;
+
+  // Variáveis para simular a mudança de local
+  bool _isDefaultLocation = true;
 
   @override
   void initState() {
@@ -66,7 +70,7 @@ class _HomeScreenState extends State<HomeScreen> {
       body: Column(
         children: [
           _buildLocationInput(),
-          const Divider(height: 1, thickness: 1),
+          const Divider(height: 1, thickness: 1, color: Colors.grey),
           Expanded(
             child: _buildResultsList(),
           ),
@@ -85,12 +89,22 @@ class _HomeScreenState extends State<HomeScreen> {
       padding: const EdgeInsets.all(16.0),
       child: Column(
         children: [
-          _buildLocationField(Icons.my_location, 'Origem', _startLocation),
-          const SizedBox(height: 8),
-          _buildLocationField(Icons.location_on, 'Destino', _endLocation),
-          const SizedBox(height: 8),
+          LocationInput(
+            icon: Icons.my_location,
+            label: 'Origem',
+            value: _startLocation,
+            onTap: _toggleLocation,
+          ),
+          const SizedBox(height: 10),
+          LocationInput(
+            icon: Icons.location_on,
+            label: 'Destino',
+            value: _endLocation,
+            onTap: _toggleLocation,
+          ),
+          const SizedBox(height: 10),
           Text(
-            'Atenção: Os preços são simulados. Toque em "Atualizar" para recalcular.',
+            'Atenção: Os preços são simulados. Toque nos locais para simular mudança de rota. Toque em "Atualizar" para recalcular.',
             style: TextStyle(color: Colors.red.shade700, fontSize: 12),
             textAlign: TextAlign.center,
           ),
@@ -99,20 +113,18 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildLocationField(IconData icon, String label, String value) {
-    return Row(
-      children: [
-        Icon(icon, color: Colors.blue.shade700),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text(
-            '$label: $value',
-            style: const TextStyle(fontSize: 16),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
-    );
+  void _toggleLocation() {
+    setState(() {
+      _isDefaultLocation = !_isDefaultLocation;
+      if (_isDefaultLocation) {
+        _startLocation = 'Rua A, 123 (Simulado)';
+        _endLocation = 'Avenida B, 456 (Simulado)';
+      } else {
+        _startLocation = 'Shopping Center (Simulado)';
+        _endLocation = 'Aeroporto Internacional (Simulado)';
+      }
+    });
+    _fetchEstimates();
   }
 
   Widget _buildResultsList() {
@@ -127,7 +139,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     // O primeiro item da lista é o mais barato, devido à ordenação no RideService
-    final bestPriceEstimate = _estimates.first;
+    final bestPriceEstimate = _estimates.isNotEmpty ? _estimates.first : null;
 
     return ListView.builder(
       padding: const EdgeInsets.all(10.0),
